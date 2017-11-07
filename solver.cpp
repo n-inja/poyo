@@ -20,7 +20,7 @@ public:
 	Solver();
 	~Solver();
 	int beamSearch();
-	void init(int, int, int, int);
+	void init();
 	void solve(int, int, int, int);
 };
 
@@ -40,9 +40,8 @@ Solver::~Solver() {
 
 }
 
-void Solver::init(int a, int b, int c, int d) {
-	puyo.push_back(make_pair(a, b));
-	puyo.push_back(make_pair(c, d));
+void Solver::init() {
+	puyo.clear();
 }
 
 int Solver::beamSearch() {
