@@ -1,0 +1,65 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="ja">
+
+<head>
+  <script src="https://npmcdn.com/vue/dist/vue.js"></script>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+  <title>viewer</title>
+  <style type='text/css'>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background-color: gray;
+      overflow: hidden;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app" class="container">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            <div v-for="(user, index) in users">
+                <div>{{ user.name }}a</div>
+                <p v-on:click="remove(index)">消す</p>
+            </div>
+        </tbody>
+    </table>
+    <input v-model="newUserName" v-on:keyup.enter="append"/>
+  </div>
+  <script type="text/javascript">
+  let vm = new Vue({
+    el: '#app',
+    data: {
+        users: [
+          {name: "💩"},
+          {name: "あ"},
+          {name: "い"}
+        ],
+        newUserName: ""
+    },
+    methods: {
+      append: function() {
+        this.users.push({name: this.newUserName});
+        this.newUserName = "";
+      },
+      remove: function(index) {
+        this.users.splice(index, 1);
+      }
+    }
+  });
+  </script>
+  <footer>
+  </footer>
+</body>
+
+</html>
