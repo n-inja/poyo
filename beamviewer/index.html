@@ -21,39 +21,32 @@
 
 <body>
   <div id="app" class="container">
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Name</th>
-            </tr>
-        </thead>
-        <tbody>
-            <div v-for="(user, index) in users">
-                <div>{{ user.name }}a</div>
-                <p v-on:click="remove(index)">消す</p>
-            </div>
-        </tbody>
-    </table>
-    <input v-model="newUserName" v-on:keyup.enter="append"/>
+    <div v-for="(generation, index) in nodes">
+      <div>
+        {{ generation.generation }}
+      </div>
+      <div v-for="(node, id) in generation.nodes" style="float: left">
+        node {{ node.id }}
+      </div>
+    </div>
   </div>
   <script type="text/javascript">
   let vm = new Vue({
     el: '#app',
     data: {
-        users: [
-          {name: "💩"},
-          {name: "あ"},
-          {name: "い"}
-        ],
-        newUserName: ""
+        nodes: [
+          {
+            generation: 0,
+            nodes: [
+              {id: 0, from: -1, children: [], score: 0, data: [[], []]},
+              {id: 1, from: -1, children: [], score: 0, data: [[], []]}
+            ]
+          }
+        ]
     },
     methods: {
-      append: function() {
-        this.users.push({name: this.newUserName});
-        this.newUserName = "";
-      },
-      remove: function(index) {
-        this.users.splice(index, 1);
+      emit: function(index) {
+
       }
     }
   });
