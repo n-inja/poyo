@@ -103,7 +103,11 @@ int main() {
 	HWND handle;
 	EnumWindows(EnumWndProc, (LPARAM)&handle);
 	Solver solver;
-	solver.init();
+	bool init = true;
+
+	// debug
+	solver.init(0, 0, 0, 0);
+
 	while(true) {
 		if(IsWindow(handle)) {
 			vector<Color> cols = getPuyoColor(handle);
@@ -132,6 +136,25 @@ int main() {
 				}
 				cout << endl;
 				// solver.solve(col[0], col[1], col[2], col[3]);
+			}
+			if(init) {
+				init = false;
+				vector<vector<int>> vote(4);
+				for(int i = 0; i < 4; i++) vote[i].resize(6);
+				for(int i = 0; i < 5; i++) {
+					cols = getPuyoColor(handle);
+					for(int j = 0; j < 4; j++) vote[j][hToPuyo(rgbToH(cols[j]))]++;
+					Sleep(10);
+				}
+				vector<int> col(4);
+				// 多数決により色を判定
+				for(int i = 0; i < 4; i++) {
+					int id = 0;
+					for(int j = 1; j < 6; j++) if(vote[i][id] < vote[i][j]) id = j;
+					cout << id << " ";
+					col[i] = id;
+				}
+				solver.init(col[0], col[1], col[2], col[3]);
 			}
 			// 赤 [355-5]
 			// 青 [230-250]
