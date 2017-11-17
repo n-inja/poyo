@@ -12,7 +12,6 @@
 #include<functional>
 using namespace std;
 
-
 struct Node {
 	unsigned int col[6];
 	int height[6];
@@ -58,10 +57,16 @@ void Solver::init(int a, int b, int c, int d) {
 	Node node;
 	for(int i = 0; i < 6; i++) {
 		node.col[i] = 0;
-		node.height[i] = 1;
+		node.height[i] = 2;
 	}
-	node.col[4] = 1;
-	node.col[5] = 1;
+	node.height[5] = 1;
+	node.height[4] = 3;
+	node.col[0] = 0;
+	node.col[1] = 4;
+	node.col[2] = 4;
+	node.col[3] = 9;
+	node.col[4] = 1 + 8 + 32;
+	node.col[5] = 2;
 	cout << countChain(node) << endl;
 	for(int i = 0; i < 6; i++) cout << node.col[i] << endl;
 	for(int i = 0; i < 6; i++) cout << node.height[i] << endl;
@@ -95,8 +100,8 @@ int countChain(Node &node) {
 	int hx[4] = {1, -1, 0, 0}, hy[4] = {0, 0, 1, -1};
 	vector<pair<int, int>> same;
 	function<void (int, int, int)> dfs;
-	dfs = [&dfs, &checked, &same, &hx, &hy](int y, int x, int color) -> void {
-		if(color < 0 || color >= 4 || y < 0 || y >= 12 || x < 0 || x >= 6 || checked[y][x]) return;
+	dfs = [&dfs, &checked, &same, &hx, &hy, &node](int y, int x, int color) -> void {
+		if(color < 0 || color >= 4 || y < 0 || y >= 12 || x < 0 || x >= 6 || checked[y][x] || bitToColor(node.col[x], node.height[x], y) != color) return;
 		checked[y][x] = true;
 		same.push_back(make_pair(y, x));
 		for(int k = 0; k < 4; k++) dfs(y + hy[k], x + hx[k], color);
@@ -104,6 +109,10 @@ int countChain(Node &node) {
 	bool chain;
 	do {
 		chain = false;
+		for(int i = 11; i >= 0; i--) {
+			for(int j = 0; j < 6; j++) cout << bitToColor(node.col[j], node.height[j], i) << " ";
+			cout << endl;
+		}
 		for(int i = 11; i >= 0; i--) for(int j = 0; j < 6; j++) {
 			checked[i][j] = false;
 			vanish[i][j] = false;
@@ -125,7 +134,8 @@ int countChain(Node &node) {
 				if(vanish[i][j]) {
 					chain = true;
 					node.height[j]--;
-					node.col[j] = ((node.col[j] >> (2 * i + 2)) << (2 * i)) | ((node.col[j] << (32 - i * 2)) >> (32 - i * 2));
+					if(i > 0) node.col[j] = ((node.col[j] >> (2 * i + 2)) << (2 * i)) | ((node.col[j] << (32 - i * 2)) >> (32 - i * 2));
+					else node.col[j] >>= 2;
 				}
 			}
 		}
