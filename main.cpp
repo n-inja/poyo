@@ -106,7 +106,6 @@ int main() {
 	bool init = true;
 
 	// debug
-	solver.init(0, 0, 0, 0);
 
 	while(true) {
 		if(IsWindow(handle)) {
@@ -135,7 +134,7 @@ int main() {
 					col[i] = id;
 				}
 				cout << endl;
-				// solver.solve(col[0], col[1], col[2], col[3]);
+				solver.solve(col[0], col[1], col[2], col[3]);
 			}
 			if(init) {
 				init = false;
