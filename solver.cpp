@@ -22,7 +22,7 @@ bool operator<(const Node &lhs, const Node &rhs) {
 	return lhs.score > rhs.score;
 }
 
-int countChain(Node &node);
+int countChain(Node &node, bool mode);
 void stack(Node &node, int act, pair<int, int> puyo);
 void printBoard(const Node &node);
 
@@ -125,7 +125,7 @@ void printBoard(const Node &node) {
 	}
 }
 
-int countChain(Node &node) {
+int countChain(Node &node, bool mode) {
 	int ret = 0;
 	bool checked[12][6] = {0};
 	bool vanish[12][6] = {0};
@@ -140,6 +140,7 @@ int countChain(Node &node) {
 	};
 	bool chain;
 	do {
+		int vanishNum = 0;
 		chain = false;
 		for(int i = 11; i >= 0; i--) for(int j = 0; j < 6; j++) {
 			checked[i][j] = false;
@@ -153,6 +154,7 @@ int countChain(Node &node) {
 				if(color == 4) continue;
 				dfs(i, j, color);
 				if(same.size() >= 4) {
+					vanishNum += same.size();
 					for(int k = 0; k < same.size(); k++) vanish[same[k].first][same[k].second] = true;
 				}
 			}
@@ -167,7 +169,13 @@ int countChain(Node &node) {
 				}
 			}
 		}
-		if(chain) ret++;
+		if(chain) {
+			if(mode) {
+				if(vanishNum <= 5) ret++;
+			} else {
+				ret++;
+			}
+		}
 	} while(chain);
 	return ret;
 }
@@ -197,10 +205,23 @@ int valuate(const Node &node) {
 			ret += same.size() * same.size();
 		}
 	}
-	ret += ((node.height[0] < 11) ? node.height[0] * 2 : 0);
-	ret += ((node.height[1] < 11) ? node.height[1] * 1 : 0);
-	ret += ((node.height[4] < 11) ? node.height[4] * 1 : 0);
-	ret += ((node.height[5] < 11) ? node.height[5] * 2 : 0);
+	ret += ((node.height[0] < 11) ? node.height[0] * 2 : 20);
+	ret += ((node.height[1] < 11) ? node.height[1] * 1 : 10);
+	ret += ((node.height[4] < 11) ? node.height[4] * 1 : 10);
+	ret += ((node.height[5] < 11) ? node.height[5] * 2 : 20);
+	int maxChain = 0;
+	for(int i = 0; i < 24; i++) {
+		Node chain;
+		for(int j = 0; j < 6; j++) {
+			chain.col[j] = node.col[j];
+			chain.height[j] = node.height[j];
+		}
+		int x = i / 6;
+		int color = i % 4;
+		chain.col[x] |= color << (chain.height[x]++ * 2);
+		maxChain = max(maxChain, countChain(chain, true));
+	}
+	ret += maxChain * 10;
 	return ret;
 }
 
@@ -228,10 +249,10 @@ int Solver::beamSearch(int turn) {
 	vector<pair<int, int>> pre = puyo;
 	int next = 36 - pre.size();
 	for(int i = 0; i < next; i++) pre.push_back(make_pair(rnd() % 4, rnd() % 4));
-
 	vector<vector<Node>> beam(next);
 	vector<Node> chainNodes(next);
 	for(int i = 0; i < next; i++) chainNodes[i].score = -1;
+
 	for(int i = 0; i < 24; i++) {
 		if(i >= 12 && i % 6 == 5) continue;
 		if(pre[turn].first == pre[turn].second && (i / 6 == 1 || i / 6 == 3)) continue;
@@ -243,7 +264,7 @@ int Solver::beamSearch(int turn) {
 		node.from = -1;
 		node.act = i;
 		stack(node, i, pre[turn]);
-		int chainNum = countChain(node);
+		int chainNum = countChain(node, false);
 		if(chainNum > 0) {
 			node.score = chainNum;
 			if(chainNodes[0].score < chainNum) chainNodes[0] = node;
@@ -254,7 +275,7 @@ int Solver::beamSearch(int turn) {
 	}
 	int cnt = 0, beamLength = 50;
 	for(int i = 0; i < next - 1; i++) {
-		sort(beam[i].begin(), beam[i].end());
+		if(beam[i].size() > 0) sort(beam[i].begin(), beam[i].end());
 		if(beam[i].size() > beamLength) beam[i].resize(beamLength);
 		//cout << i << " " << beam[i].size() << endl;
 		for(int k = 0; k < beamLength && k < beam[i].size(); k++) {
@@ -269,7 +290,7 @@ int Solver::beamSearch(int turn) {
 				node.from = k;
 				node.act = j;
 				stack(node, j, pre[turn + i + 1]);
-				int chainNum = countChain(node);
+				int chainNum = countChain(node, false);
 				if(chainNum > 0) {
 					node.score = chainNum;
 					if(chainNodes[i + 1].score < chainNum) chainNodes[i + 1] = node;
@@ -288,6 +309,7 @@ int Solver::beamSearch(int turn) {
 	if(turn < 10) id = 1;
 	for(int i = 1; i < next; i++) if(chainNodes[id].score < chainNodes[i].score) id = i;
 	// cout << id << " " << chainNodes[id].score << endl;
+	if(chainNodes[id].score < 0) id = 0;
 	int from = chainNodes[id].from, act = chainNodes[id].act;
 	if(id == 0) {
 		return chainNodes[0].act;
@@ -355,3 +377,34 @@ void Solver::solve(int a, int b, int c, int d) {
 	cout << "turn " << pr.first << ", x " << pr.second << endl;
 	turn++;
 };
+
+
+void test() {
+	random_device rnd;
+	vector<pair<int, int>> chainTest(100);
+	for(int i = 0; i < 100; i++) {
+		Solver solver;
+		vector<pair<int, int>> p(40);
+		p[0].first = rnd() % 3;
+		p[0].second = rnd() % 3;
+		p[1].first = rnd() % 3;
+		p[1].second = rnd() % 3;
+		for(int j = 2; j < 40; j++) {
+			p[j].first = rnd() % 4;
+			p[j].second = rnd() % 4;
+		}
+		solver.init(p[0].first, p[0].second, p[1].first, p[1].second);
+		for(int j = 1; j < 39; j++) {
+			solver.solve(p[j].first, p[j].second, p[j + 1].first, p[j + 1].second);
+			int chainNum = countChain(solver.now, false);
+			if(chainNum > 0) {
+				chainTest[i].first = chainNum;
+				chainTest[i].second = solver.turn;
+				break;
+			}
+		}
+	}
+	for(int i = 0; i < 100; i++) {
+		cout << chainTest[i].first << " " << chainTest[i].second << endl;
+	}
+}

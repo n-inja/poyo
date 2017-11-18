@@ -106,6 +106,8 @@ int main() {
 	bool init = true;
 
 	// debug
+	//test();
+	//return 0;
 
 	while(true) {
 		if(IsWindow(handle)) {
