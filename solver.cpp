@@ -9,8 +9,21 @@
 #include<iomanip>
 #include<set>
 #include<random>
+#include<future>
 #include<functional>
 using namespace std;
+
+uint32_t xor128(void) {
+  static uint32_t x = 123456789;
+  static uint32_t y = 362436069;
+  static uint32_t z = 521288629;
+  static uint32_t w = 88675123;
+  uint32_t t;
+
+  t = x ^ (x << 11);
+  x = y; y = z; z = w;
+  return w = (w ^ (w >> 19)) ^ (t ^ (t >> 8));
+}
 
 struct Node {
 	unsigned int col[6];
@@ -35,7 +48,7 @@ public:
 	unsigned long long board[8];
 	Solver();
 	~Solver();
-	int beamSearch(int);
+	pair<int, int> beamSearch(int);
 	void init(int, int, int, int);
 	void solve(int, int, int, int);
 };
@@ -82,9 +95,9 @@ void Solver::init(int a, int b, int c, int d) {
 	int num = 5;
 	vector<int> ans(24);
 	for(int i = 0; i < num; i++) {
-		int search = beamSearch(0);
-		cout << search << endl;
-		ans[search]++;
+		pair<int, int> search = beamSearch(0);
+		cout << search.first << endl;
+		ans[search.first] += search.second;
 	}
 	int id = 0;
 	for(int i = 1; i < 24; i++) if(ans[id] < ans[i]) id = i;
@@ -169,14 +182,18 @@ int countChain(Node &node, bool mode) {
 				}
 			}
 		}
+		int plus = 0;
 		if(chain) {
 			if(mode) {
-				if(vanishNum <= 5) ret++;
+				if(vanishNum == 4) plus += 2;
+				else if(vanishNum == 5) plus++;
 			} else {
 				ret++;
 			}
 		}
+		if(mode) ret += plus / 2;
 	} while(chain);
+
 	return ret;
 }
 
@@ -221,7 +238,7 @@ int valuate(const Node &node) {
 		chain.col[x] |= color << (chain.height[x]++ * 2);
 		maxChain = max(maxChain, countChain(chain, true));
 	}
-	ret += maxChain * 10;
+	ret += maxChain * maxChain * 10;
 	return ret;
 }
 
@@ -245,10 +262,10 @@ void stack(Node &node, int act, pair<int, int> puyo) {
 	}
 }
 
-int Solver::beamSearch(int turn) {
+pair<int, int> Solver::beamSearch(int turn) {
 	vector<pair<int, int>> pre = puyo;
 	int next = 36 - pre.size();
-	for(int i = 0; i < next; i++) pre.push_back(make_pair(rnd() % 4, rnd() % 4));
+	for(int i = 0; i < next; i++) pre.push_back(make_pair(xor128() % 4, xor128() % 4));
 	vector<vector<Node>> beam(next);
 	vector<Node> chainNodes(next);
 	for(int i = 0; i < next; i++) chainNodes[i].score = -1;
@@ -296,7 +313,7 @@ int Solver::beamSearch(int turn) {
 					if(chainNodes[i + 1].score < chainNum) chainNodes[i + 1] = node;
 					continue;
 				}
-				if(node.height[0] > 11 || node.height[1] > 11 || node.height[2] > 11 || node.height[3] > 11 || node.height[4] > 11 || node.height[5] > 11) {
+				if(node.height[0] > 11 || node.height[1] > 11 || node.height[2] > 10 || node.height[3] > 10 || node.height[4] > 11 || node.height[5] > 11) {
 					continue;
 				}
 				node.score = valuate(node);
@@ -307,12 +324,20 @@ int Solver::beamSearch(int turn) {
 
 	int id = 0;
 	if(turn < 10) id = 1;
-	for(int i = 1; i < next; i++) if(chainNodes[id].score < chainNodes[i].score) id = i;
-	// cout << id << " " << chainNodes[id].score << endl;
+	for(int i = 1; i < next; i++) if(chainNodes[id].score <= chainNodes[i].score) id = i;
 	if(chainNodes[id].score < 0) id = 0;
+	else {
+		if(chainNodes[id].score > 10) {
+			vector<int> ids;
+			for(int i = 0; i < next; i++) if(chainNodes[id].score == chainNodes[i].score) ids.push_back(id);
+			if(ids.size() > 1) id = ids[ids.size() - 2];
+		}
+	}
+	int chain = chainNodes[id].score;
+	// cout << "*" << chain << endl;
 	int from = chainNodes[id].from, act = chainNodes[id].act;
 	if(id == 0) {
-		return chainNodes[0].act;
+		return make_pair(chainNodes[0].act, chain);
 	}
 	/*
 	for(int j = 11; j >= 0; j--) {
@@ -344,7 +369,7 @@ int Solver::beamSearch(int turn) {
 		cout << endl;
 	}
 	*/
-	return beam[0][from].act;
+	return make_pair(beam[0][from].act, chain);
 }
 
 void Solver::solve(int a, int b, int c, int d) {
@@ -353,9 +378,10 @@ void Solver::solve(int a, int b, int c, int d) {
 	int num = 5;
 	vector<int> ans(24);
 	for(int i = 0; i < num; i++) {
-		int search = beamSearch(turn);
-		cout << search << endl;
-		ans[search]++;
+
+		pair<int, int> search = beamSearch(turn);
+		cout << search.first << endl;
+		ans[search.first] += search.second;
 	}
 	int id = 0;
 	for(int i = 1; i < 24; i++) if(ans[id] < ans[i]) id = i;
@@ -375,6 +401,11 @@ void Solver::solve(int a, int b, int c, int d) {
 	}
 	printBoard(now);
 	cout << "turn " << pr.first << ", x " << pr.second << endl;
+	int chain = countChain(now, false);
+	if(chain > 0) {
+		cout << "chain" << chain << " end" << endl;
+		// exit(0);
+	}
 	turn++;
 };
 
@@ -385,13 +416,13 @@ void test() {
 	for(int i = 0; i < 100; i++) {
 		Solver solver;
 		vector<pair<int, int>> p(40);
-		p[0].first = rnd() % 3;
-		p[0].second = rnd() % 3;
-		p[1].first = rnd() % 3;
-		p[1].second = rnd() % 3;
+		p[0].first = xor128() % 3;
+		p[0].second = xor128() % 3;
+		p[1].first = xor128() % 3;
+		p[1].second = xor128() % 3;
 		for(int j = 2; j < 40; j++) {
-			p[j].first = rnd() % 4;
-			p[j].second = rnd() % 4;
+			p[j].first = xor128() % 4;
+			p[j].second = xor128() % 4;
 		}
 		solver.init(p[0].first, p[0].second, p[1].first, p[1].second);
 		for(int j = 1; j < 39; j++) {

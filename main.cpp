@@ -1,6 +1,7 @@
 #include<iostream>
 #include<vector>
 #include<string>
+#include<thread>
 #include<windows.h>
 #include "solver.cpp"
 using namespace std;
